@@ -450,3 +450,19 @@ func TestSendIsQuietAfterAPin(t *testing.T) {
 		t.Errorf("key = %d, want 2", h.slotOf(31)+1)
 	}
 }
+
+func TestControlsGoToTheChatOnScreen(t *testing.T) {
+	h := newHarness(t, "[stick]\nup = \"effort-up\"\n")
+	account := filepath.Join(h.daemon.sidebar, "acct", "org")
+	os.MkdirAll(account, 0o755)
+	for id, focused := range map[string]int64{"local_a": 1, "local_b": 9} {
+		data, _ := json.Marshal(map[string]any{"sessionId": id, "cwd": "/p/x", "lastFocusedAt": focused})
+		os.WriteFile(filepath.Join(account, id+".json"), data, 0o644)
+	}
+	h.attachDesktop(11, "local_a")
+	b := h.attachDesktop(12, "local_b")
+	h.daemon.onStick(0.75, 1) // up: effort-up, given below
+	if m := b.next("action"); m["action"] != "effort-up" {
+		t.Errorf("action = %v", m)
+	}
+}

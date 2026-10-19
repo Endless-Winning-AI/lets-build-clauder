@@ -65,6 +65,17 @@ func readChats(dir string) []chatFile {
 	return chats
 }
 
+// shownChat is the host id of the chat the app last brought on screen, or "".
+func shownChat(dir string) string {
+	shown, focused := "", int64(0)
+	for _, c := range readChats(dir) {
+		if c.LastFocusedAt > focused {
+			shown, focused = c.SessionID, c.LastFocusedAt
+		}
+	}
+	return shown
+}
+
 // sidebarOrder is the chats' host ids in the order the sidebar lists them,
 // and the one last brought forward.
 func sidebarOrder(dir string, hide []string) (order []string, shown string) {

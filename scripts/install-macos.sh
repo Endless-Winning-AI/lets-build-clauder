@@ -82,6 +82,14 @@ PLIST
 domain=gui/$(id -u)
 echo "loading $label"
 launchctl bootout "$domain/$label" 2>/dev/null || true
+# bootout returns before the service is gone, and bootstrap fails until it is.
+for _ in 1 2 3 4 5 6 7 8 9 10; do
+	launchctl print "$domain/$label" >/dev/null 2>&1 || break
+	sleep 0.5
+done
+# A session may have started its own copy while none ran; it lacks the
+# agent's macOS grants, so it must not keep the socket.
+pkill -f "$target daemon" 2>/dev/null || true
 launchctl bootstrap "$domain" "$plist"
 launchctl kickstart -k "$domain/$label"
 

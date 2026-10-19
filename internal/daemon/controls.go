@@ -318,9 +318,19 @@ func (d *Daemon) settings() config.Config {
 	return d.config
 }
 
-// target is the session a control acts on: the focused one, else the one a
-// control last went to, else the only one. The caller holds d.mu.
+// target is the session a control acts on: the focused one, else the
+// Claude app chat on screen, else the one a control last went to, else the
+// only one. The caller holds d.mu.
 func (d *Daemon) target() *Session {
+	if !d.live(d.focused) {
+		if shown := shownChat(d.sidebar); shown != "" {
+			for _, s := range d.sessions {
+				if hostOf(s) == shown {
+					return s
+				}
+			}
+		}
+	}
 	for _, s := range []*Session{d.focused, d.last} {
 		if d.live(s) {
 			return s
