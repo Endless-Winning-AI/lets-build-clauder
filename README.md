@@ -73,7 +73,7 @@ Default actions for the other controls:
 | Control | Action |
 | --- | --- |
 | Lightning | toggle fast mode |
-| Check | approve the permission prompt waiting on you |
+| Check | Allow the permission prompt waiting on you; with none, go to the chat that needs you |
 | Cross | deny it; with none waiting, stop the running turn |
 | Branch | fork the conversation into a new terminal window |
 | Microphone | toggle Claude Code's voice mode |
@@ -92,7 +92,7 @@ The layout the fork was built for. Put it in `~/.config/lets-build-clauder/confi
 ```toml
 [keys]
 fast = "/new"                      # new chat
-approve = "attention"              # go to the chat that needs you
+approve = "approve"                # Allow; with nothing waiting, go where you're needed
 deny = "interrupt"                 # stop the reply
 branch = "model-next"              # Opus -> Fable -> Sonnet
 mic = { hold = "cmd+ctrl+space", tap = "ctrl+space" }   # Wispr Flow: hold to talk, tap to toggle
@@ -181,7 +181,7 @@ One daemon owns the pad and talks to it over HID. Each session runs `bin/lets-bu
 - **`pad asleep` under the prompt**: the pad is asleep, out of range or paired with another computer. Press any key to wake it.
 - **Agent keys don't switch windows**: on Linux, terminals that serve several windows from one process can't be told apart. On macOS the first switch may ask to let your terminal control another app; allow it.
 - **Keys never turn amber**: managed settings that restrict plugin hooks stop the hook that sees permission prompts. Everything else works.
-- **Approve from the pad in the desktop app**: not available yet; the pad shows a notice and you click Allow.
+- **Allow/Deny from the pad** works in chats that loaded this version of the plugin (new chats, or after `/reload-plugins`); older chats show a notice to click Allow.
 - Anything else: run `/lets-build-clauder`, then read the log.
 
 ## Rebuilding after a change

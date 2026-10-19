@@ -114,6 +114,34 @@ function report($: EngineInterface, state: State, force = false, active = false)
   )
 }
 
+/**
+ * Waits for the pad to answer a permission prompt. The prompt stays up and
+ * can be answered in the app meanwhile; the daemon stops waiting then. A
+ * dropped connection (the daemon restarting) asks again.
+ */
+async function askPad($: EngineInterface): Promise<'allow' | 'deny' | null> {
+  // After the state, so the prompt is not taken for one already answered.
+  await session.sent
+  while (session.state === 'awaiting') {
+    const daemon = session.daemon
+    const reply =
+      daemon === undefined
+        ? undefined
+        : await $.http
+            .fetch(`http://lets-build-clauder/sessions/${daemon.session}/ask`, {
+              method: 'POST',
+              body: '',
+              socketPath: daemon.socket,
+            })
+            .catch(() => undefined)
+    if (reply?.ok) {
+      return (JSON.parse(reply.text) as { answer: 'allow' | 'deny' | null }).answer ?? null
+    }
+    await new Promise(resolve => setTimeout(resolve, 1000))
+  }
+  return null
+}
+
 /** On (re)connecting: send the state again, or after a reload, the one before it. */
 async function resync($: EngineInterface) {
   if (session.hasReported) {
@@ -308,8 +336,17 @@ export const register: Register = on => {
     return next(e)
   })
 
-  on('classic.PermissionRequest', ($, e, next) => {
+  // The pad's check and cross answer the prompt here, in the app or a terminal.
+  on('classic.PermissionRequest', async ($, e, next) => {
     report($, 'awaiting')
+    const answer = await askPad($).catch(() => null)
+    if (answer === 'allow') {
+      report($, 'working')
+      return { decision: { behavior: 'allow' } }
+    }
+    if (answer === 'deny') {
+      return { decision: { behavior: 'deny', message: "Denied from Let's Build Clauder", interrupt: true } }
+    }
     return next(e)
   }).catch(($, e, next) => next(e))
 

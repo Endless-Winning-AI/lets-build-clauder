@@ -466,3 +466,57 @@ func TestControlsGoToTheChatOnScreen(t *testing.T) {
 		t.Errorf("action = %v", m)
 	}
 }
+
+func TestCheckAnswersAPromptTheChatIsWaitingOn(t *testing.T) {
+	h := newHarness(t, "")
+	c := h.attachDesktop(11, "local_a")
+	resp, err := http.Post(h.server.URL+"/sessions/"+c.id+"/state", "application/json",
+		bytes.NewReader([]byte(`{"state":"awaiting"}`)))
+	if err != nil || resp.StatusCode != http.StatusNoContent {
+		t.Fatalf("set awaiting: %v %v", err, resp)
+	}
+	answered := make(chan string, 1)
+	go func() {
+		resp, err := http.Post(h.server.URL+"/sessions/"+c.id+"/ask", "application/json", nil)
+		if err != nil {
+			answered <- err.Error()
+			return
+		}
+		var body struct{ Answer *string }
+		json.NewDecoder(resp.Body).Decode(&body)
+		if body.Answer == nil {
+			answered <- "null"
+			return
+		}
+		answered <- *body.Answer
+	}()
+	h.waitFor(func() bool {
+		h.daemon.mu.Lock()
+		defer h.daemon.mu.Unlock()
+		for _, s := range h.daemon.sessions {
+			if s.ask != nil {
+				return true
+			}
+		}
+		return false
+	})
+	h.daemon.onKey("ACT07", 1) // check
+	h.daemon.onKey("ACT07", 0)
+	select {
+	case got := <-answered:
+		if got != "allow" {
+			t.Errorf("answer = %q, want allow", got)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("no answer")
+	}
+}
+
+func TestCheckWithNothingToApproveGoesWhereYoureNeeded(t *testing.T) {
+	h := newHarness(t, "")
+	h.attachDesktop(11, "local_a")
+	h.attachDesktop(12, "local_b")
+	h.daemon.onKey("ACT07", 1)
+	h.daemon.onKey("ACT07", 0)
+	h.desktop.await(t, "focus Claude:local_a")
+}

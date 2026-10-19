@@ -17,14 +17,18 @@ async function settle() {
  * whatever `relay` is given, one per line, until `detach`. Records each
  * state the plugin sends it.
  */
-function fakeDaemon(on: On, messages: object[]) {
+function fakeDaemon(on: On, messages: object[], answers: ('allow' | 'deny' | null)[] = []) {
   const sent: string[] = []
   const queue = [...messages]
   let wake = () => {}
   let isDetached = false
   on('http.fetch', (_, e) => {
-    expect(e.url).toBe('http://lets-build-clauder/sessions/s1/state')
     expect(e.init?.socketPath).toBe(ATTACHED.socket)
+    if (e.url === 'http://lets-build-clauder/sessions/s1/ask') {
+      const answer = answers.shift() ?? null
+      return { value: { status: 200, ok: true, headers: {}, text: JSON.stringify({ answer }) } }
+    }
+    expect(e.url).toBe('http://lets-build-clauder/sessions/s1/state')
     sent.push((JSON.parse(e.init?.body ?? '{}') as { state: string }).state)
     return { value: { status: 204, ok: true, headers: {}, text: '' } }
   })
@@ -123,5 +127,24 @@ test('carries out what the pad asks of this session', async ($, on) => {
   // The model steps from Opus: next is Fable, and back is Opus.
   expect(commands).toEqual(['/fast', '/effort xhigh', '/model claude-fable-5-1', '/model claude-opus-5-5'])
   expect(submitted).toEqual(['fix the bug'])
+  daemon.detach()
+})
+
+test('answers a permission prompt from the pad', async ($, on) => {
+  const daemon = fakeDaemon(on, [ATTACHED, STATUS], ['allow', 'deny', null])
+  let reachedDialog = 0
+  on('classic.PermissionRequest', () => {
+    reachedDialog++
+    return {}
+  })
+  await $.session.start(START)
+  await settle()
+
+  const ask = { tool_name: 'Bash', tool_input: { command: 'ls' } } as never
+  expect(await $.classic.PermissionRequest(ask)).toEqual({ decision: { behavior: 'allow' } })
+  expect((await $.classic.PermissionRequest(ask)) as object).toMatchObject({ decision: { behavior: 'deny' } })
+  // Unanswered from the pad, the prompt is left to the app.
+  await $.classic.PermissionRequest(ask)
+  expect(reachedDialog).toBe(1)
   daemon.detach()
 })

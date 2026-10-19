@@ -558,23 +558,35 @@ func (d *Daemon) answer(approve bool) {
 		}
 	}
 	if s == nil {
-		if t := d.target(); !approve && t != nil && t.state == Working {
-			d.tell(t, map[string]any{"type": "action", "action": "interrupt"})
-		}
+		t := d.target()
 		d.mu.Unlock()
+		switch {
+		case approve:
+			d.run(config.Action{Name: "attention"}) // nothing to approve: go where you're needed
+		case t != nil && t.state == Working:
+			d.do("interrupt")
+		}
 		return
 	}
 	d.last = s
+	if s.ask != nil {
+		// The session's plugin is waiting on the pad: it answers the prompt.
+		answer := map[bool]string{true: "allow", false: "deny"}[approve]
+		d.log.Println("session", s.pid, "prompt:", answer)
+		s.ask <- answer
+		s.ask = nil
+		d.mu.Unlock()
+		return
+	}
 	d.mu.Unlock()
 
 	if window, _ := d.windowOf(s); strings.HasPrefix(window, "Claude:") {
-		// The Claude desktop app's prompt can't be typed into. Deny stops
-		// the turn inside Claude Code, which also drops the prompt; approve
-		// has to be clicked.
+		// No plugin waiting, and the Claude app's prompt can't be typed into:
+		// deny stops the turn, which drops the prompt; approve has to be clicked.
 		d.mu.Lock()
 		defer d.mu.Unlock()
 		if approve {
-			d.tell(s, map[string]any{"type": "notice", "text": "Let's Build Clauder: click Allow in the Claude app (approve from the pad isn't available there yet)"})
+			d.tell(s, map[string]any{"type": "notice", "text": "Let's Build Clauder: click Allow in the Claude app"})
 		} else {
 			d.tell(s, map[string]any{"type": "action", "action": "interrupt"})
 		}

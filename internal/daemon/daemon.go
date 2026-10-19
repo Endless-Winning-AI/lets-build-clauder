@@ -7,6 +7,9 @@
 //	                             the daemon tells it, one JSON object per line,
 //	                             for as long as the session lives
 //	POST /sessions/{id}/state    set a session's state: {"state": "working"}
+//	POST /sessions/{id}/ask      wait for the pad to answer the session's
+//	                             permission prompt: {"answer": "allow"},
+//	                             "deny", or null when answered otherwise
 //	GET  /status                 the pad and each session, for doctor
 package daemon
 
@@ -72,6 +75,7 @@ type Session struct {
 
 	out  chan []byte
 	done chan struct{} // closed to end the session's stream
+	ask  chan string   // the plugin waiting on the pad to answer its prompt
 	end  sync.Once
 }
 
@@ -168,6 +172,7 @@ func (d *Daemon) handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /attach", d.handleAttach)
 	mux.HandleFunc("POST /sessions/{id}/state", d.handleState)
+	mux.HandleFunc("POST /sessions/{id}/ask", d.handleAsk)
 	mux.HandleFunc("GET /status", d.handleStatus)
 	return mux
 }
@@ -396,11 +401,52 @@ func (d *Daemon) changed() {
 	}
 }
 
+func (d *Daemon) handleAsk(w http.ResponseWriter, r *http.Request) {
+	ask := make(chan string, 1)
+	d.mu.Lock()
+	s := d.sessions[r.PathValue("id")]
+	if s != nil {
+		d.dropAsk(s)
+		s.ask = ask
+	}
+	d.mu.Unlock()
+	if s == nil {
+		http.Error(w, "no such session", http.StatusNotFound)
+		return
+	}
+	var answer *string
+	select {
+	case a, ok := <-ask:
+		if ok {
+			answer = &a
+		}
+	case <-s.done:
+	case <-r.Context().Done():
+	}
+	d.mu.Lock()
+	if s.ask == ask {
+		s.ask = nil
+	}
+	d.mu.Unlock()
+	reply(w, http.StatusOK, map[string]*string{"answer": answer})
+}
+
+// dropAsk ends a session's wait on the pad unanswered. The caller holds d.mu.
+func (d *Daemon) dropAsk(s *Session) {
+	if s.ask != nil {
+		close(s.ask)
+		s.ask = nil
+	}
+}
+
 // setState moves a session to a state; tell says the session did not move
 // itself and should hear of it. The caller holds d.mu.
 func (d *Daemon) setState(s *Session, state string, tell bool) {
 	if s.state == state {
 		return
+	}
+	if s.state == Awaiting {
+		d.dropAsk(s) // answered some other way
 	}
 	s.state, s.since = state, time.Now()
 	if tell {

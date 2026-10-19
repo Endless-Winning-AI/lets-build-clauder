@@ -33,7 +33,7 @@ The six agent keys are not configurable: each shows its session's state and swit
 
 | Action | Effect |
 | --- | --- |
-| `"approve"` | Yes to the permission prompt waiting on the user |
+| `"approve"` | Yes to the permission prompt waiting on the user; with none, same as `"attention"` |
 | `"deny"` | No to it; with none waiting, stop the running turn |
 | `"interrupt"` | stop the running turn |
 | `"submit"` | send what is typed in the prompt box |
