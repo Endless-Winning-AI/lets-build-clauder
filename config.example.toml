@@ -1,0 +1,85 @@
+# Let's Build Clauder: what each control on the pad does.
+#
+# Copy to ~/.config/lets-build-clauder/config.toml and change what you like. Anything
+# left out keeps the default shown here. Changes apply on the next press.
+#
+# The six agent keys always show and switch to their session.
+#
+# Actions:
+#
+#   "approve"        answer Yes to the permission prompt waiting on you
+#   "deny"           answer No to it; with none waiting, stop the running turn
+#   "interrupt"      stop the running turn
+#   "submit"         send what is typed in the prompt box
+#   "fast"           toggle fast mode (/fast)
+#   "voice"          toggle voice mode (/voice)
+#   "fork"           copy the conversation into a new terminal window
+#   "effort-up"      raise or lower reasoning effort one step
+#   "effort-down"
+#   "cycle-mode"     cycle permission modes, as Shift+Tab does
+#   "attention"      switch to the session that most needs you, else the next
+#   "next-session"   switch to the next or previous session by key
+#   "prev-session"
+#   "chat-next"      step down or up the Claude desktop app's sidebar, from the
+#   "chat-prev"      chat on screen (open or not)
+#   "model-next"     step the model: Opus, Fable, Sonnet
+#   "model-prev"
+#   "none"           do nothing
+#
+#   "/command args"                      run a slash command, e.g. "/model sonnet"
+#   { text = "run the tests" }           type into the prompt box
+#   { text = "continue", submit = true } type and send
+#   { keys = "ctrl+r" }                  press keys in the session's terminal
+#   { hold = "fn" }                      hold a key down while the pad's key is
+#                                        held, for dictation apps (keys only,
+#                                        macOS, needs Accessibility)
+#   { hold = "cmd+ctrl+space", tap = "ctrl+space" }
+#                                        the same, but a quick press (under a
+#                                        quarter second) presses "tap" once
+#                                        instead: push-to-talk when held,
+#                                        hands-free toggle when tapped
+#   { double = "enter" }                 press a key for the whole desktop on a
+#                                        quick double tap; one tap does nothing
+#                                        (send key only, macOS, needs
+#                                        Accessibility)
+#   { run = ["notify-send", "hi"] }      run a program
+#   { run = "say done" }                 run a shell command
+#
+# Controls act on the session whose terminal has focus, or else the one a
+# control last went to. Approve and deny go to the session waiting on you.
+#
+# Pinning: hold the send key (Codex logo) and press an agent key to pin the
+# session you last typed in to that key. Pins are kept in
+# ~/Library/Application Support/lets-build-clauder/pins.json on macOS and
+# ~/.local/state/lets-build-clauder/pins.json on Linux, so a pinned Claude desktop
+# session gets its key back after a restart.
+
+[keys]
+fast = "fast"        # lightning bolt
+approve = "approve"  # check
+deny = "deny"        # cross
+branch = "fork"      # branch
+mic = "voice"        # microphone; { hold = "fn" } for Wispr Flow
+send = "submit"      # Codex logo
+
+[dial]
+left = "effort-down"
+right = "effort-up"
+press = "/effort"
+hold = "none"        # held for half a second or longer
+
+[stick]
+up = "cycle-mode"
+down = "attention"
+left = "prev-session"
+right = "next-session"
+
+[agents]
+# manual = true     agent keys go only to pinned sessions, and never move
+# hide = ["Old"]    sidebar groups chat-next and chat-prev skip
+
+[terminal]
+# The command "fork" opens a new terminal with; the program is appended.
+# Unset, a new window of the session's own terminal app on macOS, and on
+# Linux xdg-terminal-exec, $TERMINAL, then common terminals.
+# command = ["foot"]

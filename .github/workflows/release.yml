@@ -1,0 +1,41 @@
+name: Release
+
+# Push a tag such as v0.7.0 to build and publish that version's binaries with
+# a checksums.txt. The launcher (bin/lets-build-clauder) does not download releases; it
+# runs build/lets-build-clauder or the installed daemon. Releases are for convenience.
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - run: go test ./...
+      - name: Check the version
+        run: |
+          version=${GITHUB_REF_NAME#v}
+          grep -q "const version = \"$version\"" cmd/lets-build-clauder/main.go
+          grep -q "\"version\": \"$version\"" .claude-plugin/plugin.json
+      - name: Build
+        run: |
+          version=${GITHUB_REF_NAME#v}
+          mkdir dist
+          for target in darwin/amd64 darwin/arm64 linux/amd64 linux/arm64; do
+            os=${target%/*} arch=${target#*/}
+            GOOS=$os GOARCH=$arch CGO_ENABLED=0 go build -trimpath -ldflags='-s -w -buildid=' \
+              -o "dist/lets-build-clauder-$version-$os-$arch" ./cmd/lets-build-clauder
+          done
+          cd dist && sha256sum lets-build-clauder-* > checksums.txt && cat checksums.txt
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" dist/* --title "$GITHUB_REF_NAME" --generate-notes

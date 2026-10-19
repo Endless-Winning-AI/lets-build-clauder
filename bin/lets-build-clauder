@@ -1,0 +1,32 @@
+#!/bin/sh
+# Runs Let's Build Clauder for this computer.
+#
+# A local build in build/ comes first, then the installed daemon binary
+# (~/Library/Application Support/lets-build-clauder/lets-build-clauder on macOS, or $CLAUDER_BIN).
+# The daemon itself runs as a LaunchAgent from that installed path, so the
+# macOS permission grants stay with that one program; sessions only talk to
+# it, so they may use a newer local build without losing the grants.
+set -eu
+
+root=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
+if [ -x "$root/build/lets-build-clauder" ]; then
+	exec "$root/build/lets-build-clauder" "$@"
+fi
+
+case $(uname -s) in
+	Darwin) default="$HOME/Library/Application Support/lets-build-clauder/lets-build-clauder" ;;
+	*) default="${XDG_DATA_HOME:-$HOME/.local/share}/lets-build-clauder/lets-build-clauder" ;;
+esac
+stable="${CLAUDER_BIN:-$default}"
+if [ -x "$stable" ]; then
+	exec "$stable" "$@"
+fi
+
+cat >&2 <<MSG
+lets-build-clauder: no program found. Looked for:
+  $root/build/lets-build-clauder
+  $stable
+Build one with: cd "$root" && go build -o build/lets-build-clauder ./cmd/lets-build-clauder
+Or on macOS install the daemon with: "$root/scripts/install-macos.sh"
+MSG
+exit 1

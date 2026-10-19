@@ -1,0 +1,5 @@
+.claude-plugin/types/
+build/
+dist/
+*.test
+.DS_Store
