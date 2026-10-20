@@ -66,14 +66,14 @@ Agent key colors:
 | Red | the last turn ended in an error |
 | Off | no chat |
 
-Press an agent key to bring its chat forward. By default a new chat takes the first free key. With `[agents] manual = true`, only pinned chats get keys and keys never move on their own: hold the send key (the logo key) and press an agent key to pin the chat you last typed in. Pins survive restarts. A key whose pinned chat is closed stays dark, and pressing it reopens the chat.
+Press an agent key to bring its chat forward. By default a new chat takes the first free key. With `[agents] manual = true`, only pinned chats get keys and keys never move on their own: hold the send key (the logo key) or the check key and press an agent key to pin the chat you last typed in. Pins survive restarts. A key whose pinned chat is closed stays dark, and pressing it reopens the chat.
 
 Default actions for the other controls:
 
 | Control | Action |
 | --- | --- |
 | Lightning | toggle fast mode |
-| Check | Allow the permission prompt waiting on you; with none, Enter if the Claude app is in front |
+| Check | quick tap: allow the permission prompt waiting on you; with none, Enter if the Claude app is in front. Held, it does nothing; held with an agent key, it pins |
 | Cross | deny it; with none waiting, stop the running turn |
 | Branch | fork the conversation into a new terminal window |
 | Microphone | toggle Claude Code's voice mode |

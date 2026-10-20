@@ -207,7 +207,36 @@ func TestApproveGoesToTheSessionWaiting(t *testing.T) {
 	b := h.attach(102, nil)
 	h.setState(b, Awaiting)
 	h.daemon.onKey("ACT07", 1)
+	h.daemon.onKey("ACT07", 0)
 	h.desktop.await(t, "approve w102")
+}
+
+func TestHeldCheckIsCancelled(t *testing.T) {
+	h := newHarness(t, "")
+	h.attach(101, nil)
+	b := h.attach(102, nil)
+	h.setState(b, Awaiting)
+	h.daemon.onKey("ACT07", 1)
+	time.Sleep(tapFor + 50*time.Millisecond)
+	h.daemon.onKey("ACT07", 0)
+	time.Sleep(300 * time.Millisecond)
+	h.desktop.await(t) // nothing approved
+}
+
+func TestCheckPlusAgentKeyPinsInsteadOfApproving(t *testing.T) {
+	h := newHarness(t, "")
+	h.attachDesktop(11, "local_a")           // key 1
+	second := h.attachDesktop(12, "local_b") // key 2
+	h.setActive(second)
+	h.desktop.claude = true
+
+	h.daemon.onKey("ACT07", 1) // check down
+	h.daemon.onKey("AG0", 1)   // agent key 1
+	h.daemon.onKey("AG0", 0)
+	h.daemon.onKey("ACT07", 0) // check up: no approve or Enter, it was a chord
+	h.waitFor(func() bool { return h.slotOf(12) == 0 })
+	time.Sleep(300 * time.Millisecond)
+	h.desktop.await(t) // nothing switched, nothing pressed
 }
 
 func TestDenyWithNothingWaitingInterrupts(t *testing.T) {

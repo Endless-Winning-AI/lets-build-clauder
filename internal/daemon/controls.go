@@ -40,6 +40,9 @@ type controls struct {
 	chorded    bool                     // an agent key was pressed while send was held
 	chordedAt  time.Time                // when, so the pad's repeats of send after it are ignored
 	sendTapAt  time.Time                // the last lone tap of send, for double taps
+	checkAt    time.Time                // when the check key went down
+	checkPin   bool                     // an agent key was pressed while check was held
+	checkPinAt time.Time                // when, so the pad's repeats of check after it are ignored
 	dialDown   time.Time
 	stickArmed bool
 	warned     map[string]bool // problems already told of
@@ -81,13 +84,17 @@ func (d *Daemon) onKey(key string, act int) {
 	switch {
 	case strings.HasPrefix(key, "AG"):
 		if slot, err := strconv.Atoi(key[2:]); err == nil && act == 1 {
-			// With the send key held, an agent key pins the current session
-			// to it instead of switching.
+			// With the send or check key held, an agent key pins the
+			// current session to it instead of switching.
 			d.mu.Lock()
-			chord := d.isDown("send")
-			if chord {
+			chord := d.isDown("send") || d.isDown("approve")
+			if d.isDown("send") {
 				d.chorded = true
 				d.chordedAt = time.Now()
+			}
+			if d.isDown("approve") {
+				d.checkPin = true
+				d.checkPinAt = time.Now()
 			}
 			d.mu.Unlock()
 			if chord {
@@ -154,6 +161,13 @@ func (d *Daemon) onSwitch(key string, down bool) {
 			d.chorded = false
 			d.mu.Unlock()
 			return
+		case control == "approve":
+			// Check acts on the way up, and only for a quick tap: held
+			// longer it does nothing, and with an agent key it pins.
+			d.checkAt = time.Now()
+			d.checkPin = false
+			d.mu.Unlock()
+			return
 		}
 	case was && !now && waiting:
 		// Let go before the hold began: a tap. (Once the hold has begun,
@@ -165,6 +179,22 @@ func (d *Daemon) onSwitch(key string, down bool) {
 		return
 	case was && !now && holding:
 		delete(d.holding, control)
+	case was && !now && control == "approve":
+		held := time.Since(d.checkAt)
+		pinned := d.checkPin || time.Since(d.checkPinAt) < chordQuiet
+		d.checkPin = false
+		d.mu.Unlock()
+		if pinned {
+			return
+		}
+		if held >= tapFor {
+			d.log.Println("control keys approve held", held.Round(time.Millisecond), "- cancelled")
+			return
+		}
+		action = d.action("keys", control)
+		d.log.Println("control keys", control, "->", action)
+		go d.run(action)
+		return
 	case was && !now && control == "send":
 		// After a chord, this release and the pad's repeats of it mean nothing.
 		chorded := d.chorded || time.Since(d.chordedAt) < chordQuiet
