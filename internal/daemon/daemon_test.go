@@ -24,12 +24,9 @@ import (
 // what is done to windows.
 type fakeDesktop struct {
 	desktop.None
-	mu     sync.Mutex
-	done   []string
-	claude bool // the Claude app is in front
+	mu   sync.Mutex
+	done []string
 }
-
-func (f *fakeDesktop) ClaudeInFront() bool { return f.claude }
 
 func (f *fakeDesktop) Name() string                    { return "fake" }
 func (f *fakeDesktop) Locate(pid int, _ string) string { return "w" + strconv.Itoa(pid) }
@@ -265,7 +262,6 @@ func TestCheckPlusAgentKeyPinsInsteadOfApproving(t *testing.T) {
 	h.attachDesktop(11, "local_a")           // key 1
 	second := h.attachDesktop(12, "local_b") // key 2
 	h.setActive(second)
-	h.desktop.claude = true
 
 	h.daemon.onKey("ACT07", 1) // check down
 	h.daemon.onKey("AG0", 1)   // agent key 1
@@ -581,22 +577,12 @@ func TestCheckAnswersAPromptTheChatIsWaitingOn(t *testing.T) {
 	}
 }
 
-func TestCheckWithNothingToApprovePressesEnterInClaude(t *testing.T) {
+func TestCheckWithNothingToApprovePressesEnter(t *testing.T) {
 	h := newHarness(t, "")
 	h.attachDesktop(11, "local_a")
-	h.desktop.claude = true
 	h.daemon.onKey("ACT07", 1)
 	h.daemon.onKey("ACT07", 0)
 	h.desktop.await(t, "hold enter down", "hold enter up")
-}
-
-func TestCheckWithNothingToApproveDoesNothingOutsideClaude(t *testing.T) {
-	h := newHarness(t, "")
-	h.attachDesktop(11, "local_a")
-	h.daemon.onKey("ACT07", 1)
-	h.daemon.onKey("ACT07", 0)
-	time.Sleep(300 * time.Millisecond)
-	h.desktop.await(t)
 }
 
 func TestNextWaitingGoesRoundTheAmberChats(t *testing.T) {

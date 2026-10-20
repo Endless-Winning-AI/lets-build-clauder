@@ -73,7 +73,7 @@ Default actions for the other controls:
 | Control | Action |
 | --- | --- |
 | Lightning | toggle fast mode |
-| Check | quick tap: allow the permission prompt waiting on you; with none, Enter if the Claude app is in front. Held, it does nothing; held with an agent key, it pins |
+| Check | quick tap: allow the permission prompt waiting on you; with none, Enter in whatever app is in front. Held, it does nothing; held with an agent key, it pins |
 | Cross | deny it; with none waiting, stop the running turn |
 | Branch | fork the conversation into a new terminal window |
 | Microphone | toggle Claude Code's voice mode |

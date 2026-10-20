@@ -636,8 +636,7 @@ func (d *Daemon) cycle(step int) {
 
 // answer answers the permission prompt of the session waiting on you: the
 // focused one, else the one waiting longest. With none waiting, approve
-// presses Enter if the Claude app is in front, and deny stops the running
-// turn.
+// presses Enter in the app in front, and deny stops the running turn.
 func (d *Daemon) answer(approve bool) {
 	d.mu.Lock()
 	s := d.focused
@@ -654,11 +653,9 @@ func (d *Daemon) answer(approve bool) {
 		d.mu.Unlock()
 		switch {
 		case approve:
-			// Nothing to approve: Enter, but only into the Claude app.
-			if d.desktop.ClaudeInFront() {
-				d.log.Println("approve: no prompt waiting; enter")
-				d.press1("enter")
-			}
+			// Nothing to approve: Enter, into whatever app is in front.
+			d.log.Println("approve: no prompt waiting; enter")
+			d.press1("enter")
 		case t != nil && t.state == Working:
 			d.do("interrupt")
 		}
