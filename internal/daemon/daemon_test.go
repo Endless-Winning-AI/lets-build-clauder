@@ -598,3 +598,27 @@ func TestCheckWithNothingToApproveDoesNothingOutsideClaude(t *testing.T) {
 	time.Sleep(300 * time.Millisecond)
 	h.desktop.await(t)
 }
+
+func TestNextWaitingGoesRoundTheAmberChats(t *testing.T) {
+	h := newHarness(t, "[keys]\napprove = \"next-waiting\"\n")
+	h.attachDesktop(11, "local_a")
+	b := h.attachDesktop(12, "local_b")
+	c := h.attachDesktop(13, "local_c")
+	h.daemon.onKey("ACT07", 1) // none waiting: nothing
+	h.daemon.onKey("ACT07", 0)
+	time.Sleep(200 * time.Millisecond)
+	h.desktop.await(t)
+
+	h.setState(c, Awaiting)
+	time.Sleep(10 * time.Millisecond)
+	h.setState(b, Awaiting)
+	h.daemon.onKey("ACT07", 1) // oldest first
+	h.daemon.onKey("ACT07", 0)
+	h.desktop.await(t, "focus Claude:local_c")
+	h.daemon.onKey("ACT07", 1) // then the next
+	h.daemon.onKey("ACT07", 0)
+	h.desktop.await(t, "focus Claude:local_c", "focus Claude:local_b")
+	h.daemon.onKey("ACT07", 1) // and round
+	h.daemon.onKey("ACT07", 0)
+	h.desktop.await(t, "focus Claude:local_c", "focus Claude:local_b", "focus Claude:local_c")
+}

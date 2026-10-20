@@ -45,7 +45,7 @@ func (a Action) String() string {
 // Actions are the built-in actions.
 var Actions = []string{
 	"approve", "deny", "interrupt", "submit", "fast", "voice", "fork",
-	"effort-up", "effort-down", "cycle-mode", "attention", "next-session",
+	"effort-up", "effort-down", "cycle-mode", "attention", "next-waiting", "next-session",
 	"prev-session", "chat-next", "chat-prev", "model-next", "model-prev", "none",
 }
 

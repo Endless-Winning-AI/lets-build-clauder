@@ -459,6 +459,8 @@ func (d *Daemon) run(a config.Action) {
 		} else {
 			d.cycle(1) // nothing needs you: go round the sessions
 		}
+	case a.Name == "next-waiting":
+		d.nextWaiting()
 	case a.Name == "chat-next":
 		d.stepChat(1)
 	case a.Name == "chat-prev":
@@ -498,6 +500,32 @@ func (d *Daemon) mostUrgent() *Session {
 		}
 	}
 	return nil
+}
+
+// nextWaiting goes to the next chat waiting on you (amber), oldest first,
+// going round them on each press. With none waiting it does nothing.
+func (d *Daemon) nextWaiting() {
+	d.mu.Lock()
+	var waiting []*Session
+	for _, s := range d.sessions {
+		if s.state == Awaiting {
+			waiting = append(waiting, s)
+		}
+	}
+	if len(waiting) == 0 {
+		d.mu.Unlock()
+		d.log.Println("next-waiting: no chat waiting")
+		return
+	}
+	sort.Slice(waiting, func(i, j int) bool { return waiting[i].since.Before(waiting[j].since) })
+	next := waiting[0]
+	for i, s := range waiting {
+		if s == d.last {
+			next = waiting[(i+1)%len(waiting)]
+		}
+	}
+	d.mu.Unlock()
+	d.goTo(next)
 }
 
 // jump brings forward the session on a key.

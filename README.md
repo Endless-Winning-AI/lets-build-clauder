@@ -145,6 +145,7 @@ Each control takes one of:
 | `"effort-up"`, `"effort-down"` | step effort through low, medium, high, xhigh, max |
 | `"cycle-mode"` | cycle permission modes, as Shift+Tab does |
 | `"attention"`, `"next-session"`, `"prev-session"` | switch chats |
+| `"next-waiting"` | go to the next chat waiting on you (amber), oldest first; again for the next |
 | `"chat-next"`, `"chat-prev"` | step the desktop app's sidebar from the chat on screen, opening chats that aren't running |
 | `"model-next"`, `"model-prev"` | step the model through Opus, Fable, Sonnet |
 | `"/command args"` | run a slash command |
