@@ -414,6 +414,7 @@ func (d *Daemon) handleAsk(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "no such session", http.StatusNotFound)
 		return
 	}
+	d.log.Println("session", s.pid, "waits on the pad for its prompt")
 	var answer *string
 	select {
 	case a, ok := <-ask:
@@ -447,6 +448,9 @@ func (d *Daemon) setState(s *Session, state string, tell bool) {
 	}
 	if s.state == Awaiting {
 		d.dropAsk(s) // answered some other way
+	}
+	if state == Awaiting || s.state == Awaiting {
+		d.log.Println("session", s.pid, s.state, "->", state)
 	}
 	s.state, s.since = state, time.Now()
 	if tell {
