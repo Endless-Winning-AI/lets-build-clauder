@@ -8,7 +8,7 @@
 # Actions:
 #
 #   "approve"        answer Yes to the permission prompt waiting on you; with
-#                    none waiting, go to the chat that needs you (as "attention")
+#                    none waiting, Enter if the Claude app is in front
 #   "deny"           answer No to it; with none waiting, stop the running turn
 #   "interrupt"      stop the running turn
 #   "submit"         send what is typed in the prompt box

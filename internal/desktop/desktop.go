@@ -38,6 +38,8 @@ type Desktop interface {
 	// CanHold reports whether this process may post keys for Hold: on
 	// macOS, whether it is allowed under Accessibility.
 	CanHold() bool
+	// ClaudeInFront reports whether the Claude desktop app is the app in front.
+	ClaudeInFront() bool
 	// Follow calls onFocus with each window that gains focus, until the
 	// context ends. Windows of other apps read as "".
 	Follow(ctx context.Context, onFocus func(window string))
@@ -60,6 +62,7 @@ func (None) Raise(int) bool                       { return false }
 func (None) Open(string, []string, int) bool      { return false }
 func (None) Hold(keys.Chord, bool) error          { return ErrUnsupported }
 func (None) CanHold() bool                        { return false }
+func (None) ClaudeInFront() bool                  { return false }
 func (None) Follow(context.Context, func(string)) {}
 
 // output runs a program and returns what it printed, trimmed, or false when

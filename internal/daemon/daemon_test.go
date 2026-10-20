@@ -24,9 +24,12 @@ import (
 // what is done to windows.
 type fakeDesktop struct {
 	desktop.None
-	mu   sync.Mutex
-	done []string
+	mu     sync.Mutex
+	done   []string
+	claude bool // the Claude app is in front
 }
+
+func (f *fakeDesktop) ClaudeInFront() bool { return f.claude }
 
 func (f *fakeDesktop) Name() string                    { return "fake" }
 func (f *fakeDesktop) Locate(pid int, _ string) string { return "w" + strconv.Itoa(pid) }
@@ -512,11 +515,20 @@ func TestCheckAnswersAPromptTheChatIsWaitingOn(t *testing.T) {
 	}
 }
 
-func TestCheckWithNothingToApproveGoesWhereYoureNeeded(t *testing.T) {
+func TestCheckWithNothingToApprovePressesEnterInClaude(t *testing.T) {
 	h := newHarness(t, "")
 	h.attachDesktop(11, "local_a")
-	h.attachDesktop(12, "local_b")
+	h.desktop.claude = true
 	h.daemon.onKey("ACT07", 1)
 	h.daemon.onKey("ACT07", 0)
-	h.desktop.await(t, "focus Claude:local_a")
+	h.desktop.await(t, "hold enter down", "hold enter up")
+}
+
+func TestCheckWithNothingToApproveDoesNothingOutsideClaude(t *testing.T) {
+	h := newHarness(t, "")
+	h.attachDesktop(11, "local_a")
+	h.daemon.onKey("ACT07", 1)
+	h.daemon.onKey("ACT07", 0)
+	time.Sleep(300 * time.Millisecond)
+	h.desktop.await(t)
 }

@@ -241,6 +241,15 @@ func (m *MacOS) Approve(window string) bool {
 	return m.Press(window, keys.Chord{Key: "1"})
 }
 
+func (*MacOS) ClaudeInFront() bool {
+	app, ok := output(2*time.Second, "lsappinfo", "front")
+	if !ok || app == "" {
+		return false
+	}
+	id, _ := output(2*time.Second, "lsappinfo", "info", "-only", "bundleid", app)
+	return strings.Contains(id, `"com.anthropic.claudefordesktop"`)
+}
+
 // front names the terminal in front, or "".
 func front() string {
 	out, _ := osascript(`

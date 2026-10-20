@@ -73,7 +73,7 @@ Default actions for the other controls:
 | Control | Action |
 | --- | --- |
 | Lightning | toggle fast mode |
-| Check | Allow the permission prompt waiting on you; with none, go to the chat that needs you |
+| Check | Allow the permission prompt waiting on you; with none, Enter if the Claude app is in front |
 | Cross | deny it; with none waiting, stop the running turn |
 | Branch | fork the conversation into a new terminal window |
 | Microphone | toggle Claude Code's voice mode |
