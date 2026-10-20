@@ -122,7 +122,7 @@ mic = { hold = "cmd+ctrl+space", tap = "ctrl+space" }
 	}
 }
 
-func TestDoubleWorksOnSendOnly(t *testing.T) {
+func TestDoubleWorksOnKeysOnly(t *testing.T) {
 	c, problems := Load(write(t, "[keys]\nsend = { double = \"return\" }\n"))
 	if problems != nil {
 		t.Fatalf("problems: %v", problems)
@@ -130,9 +130,12 @@ func TestDoubleWorksOnSendOnly(t *testing.T) {
 	if got := c.Action("keys", "send"); got.Double != "return" || got.String() != "double return" {
 		t.Errorf("send = %+v", got)
 	}
-	_, problems = Load(write(t, "[keys]\nfast = { double = \"return\" }\n"))
-	if len(problems) != 1 || !strings.Contains(problems[0], "send key only") {
-		t.Errorf("double on fast: problems = %v", problems)
+	if _, problems = Load(write(t, "[keys]\napprove = { double = \"return\" }\n")); problems != nil {
+		t.Errorf("double on approve: problems = %v", problems)
+	}
+	_, problems = Load(write(t, "[dial]\npress = { double = \"return\" }\n"))
+	if len(problems) != 1 || !strings.Contains(problems[0], "keys only") {
+		t.Errorf("double on the dial: problems = %v", problems)
 	}
 }
 

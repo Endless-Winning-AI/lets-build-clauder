@@ -87,12 +87,13 @@ func (d *Daemon) onKey(key string, act int) {
 			// With the send or check key held, an agent key pins the
 			// current session to it instead of switching.
 			d.mu.Lock()
-			chord := d.isDown("send") || d.isDown("approve")
-			if d.isDown("send") {
+			sendHeld, checkHeld := d.pinKeysDown()
+			chord := sendHeld || checkHeld
+			if sendHeld {
 				d.chorded = true
 				d.chordedAt = time.Now()
 			}
-			if d.isDown("approve") {
+			if checkHeld {
 				d.checkPin = true
 				d.checkPinAt = time.Now()
 			}
@@ -142,6 +143,7 @@ func (d *Daemon) onSwitch(key string, down bool) {
 	now := d.isDown(control)
 	action, holding := d.holding[control]
 	wait, waiting := d.pending[control]
+	kind := d.kindOf(control)
 	switch {
 	case now && !was:
 		action = d.action("keys", control)
@@ -155,13 +157,13 @@ func (d *Daemon) onSwitch(key string, down bool) {
 			return
 		case action.Hold != "":
 			d.holding[control] = action
-		case control == "send":
+		case kind == "send":
 			// Send acts on the way up, so that an agent key pressed while
 			// it is held can mean "pin" instead.
 			d.chorded = false
 			d.mu.Unlock()
 			return
-		case control == "approve":
+		case kind == "check":
 			// Check acts on the way up, and only for a quick tap: held
 			// longer it does nothing, and with an agent key it pins.
 			d.checkAt = time.Now()
@@ -179,7 +181,7 @@ func (d *Daemon) onSwitch(key string, down bool) {
 		return
 	case was && !now && holding:
 		delete(d.holding, control)
-	case was && !now && control == "approve":
+	case was && !now && kind == "check":
 		held := time.Since(d.checkAt)
 		pinned := d.checkPin || time.Since(d.checkPinAt) < chordQuiet
 		d.checkPin = false
@@ -195,7 +197,7 @@ func (d *Daemon) onSwitch(key string, down bool) {
 		d.log.Println("control keys", control, "->", action)
 		go d.run(action)
 		return
-	case was && !now && control == "send":
+	case was && !now && kind == "send":
 		// After a chord, this release and the pad's repeats of it mean nothing.
 		chorded := d.chorded || time.Since(d.chordedAt) < chordQuiet
 		d.chorded = false
@@ -265,6 +267,37 @@ func (d *Daemon) press1(chord string) {
 	}
 	time.Sleep(tapDown)
 	d.desktop.Hold(c, false)
+}
+
+// kindOf says how a key acts, from what it is set to, wherever it sits on
+// the pad: "check" for approve (on a quick tap, on the way up), "send" for
+// the send key or a double-tap key (on the way up), or "". Both pin when held
+// with an agent key. The caller holds d.mu.
+func (d *Daemon) kindOf(control string) string {
+	action := d.action("keys", control)
+	switch {
+	case action.Hold != "":
+		return ""
+	case action.Name == "approve":
+		return "check"
+	case control == "send" || action.Double != "":
+		return "send"
+	}
+	return ""
+}
+
+// pinKeysDown reports whether a send-kind or check-kind key is held. The
+// caller holds d.mu.
+func (d *Daemon) pinKeysDown() (send, check bool) {
+	for key := range d.down {
+		switch d.kindOf(keyControls[key]) {
+		case "send":
+			send = true
+		case "check":
+			check = true
+		}
+	}
+	return send, check
 }
 
 // isDown reports whether any switch of a control is down. The caller holds d.mu.

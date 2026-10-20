@@ -49,7 +49,8 @@
 # Controls act on the session whose terminal has focus, or else the one a
 # control last went to. Approve and deny go to the session waiting on you.
 #
-# Pinning: hold the send key (Codex logo) and press an agent key to pin the
+# Pinning: hold the send key (Codex logo), or a key set to "approve" or a
+# double tap, and press an agent key to pin the
 # session you last typed in to that key. Pins are kept in
 # ~/Library/Application Support/lets-build-clauder/pins.json on macOS and
 # ~/.local/state/lets-build-clauder/pins.json on Linux, so a pinned Claude desktop

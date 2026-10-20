@@ -211,6 +211,43 @@ func TestApproveGoesToTheSessionWaiting(t *testing.T) {
 	h.desktop.await(t, "approve w102")
 }
 
+func TestSwappedKeysActByTheirSettings(t *testing.T) {
+	// The send switch set to approve, and the check switch to double-tap Enter.
+	h := newHarness(t, "[keys]\nsend = \"approve\"\napprove = { double = \"enter\" }\n")
+	h.attach(101, nil)
+	b := h.attach(102, nil)
+	h.setState(b, Awaiting)
+	h.daemon.onKey("ACT12", 1) // tap the send switch: approves
+	h.daemon.onKey("ACT12", 0)
+	h.desktop.await(t, "approve w102")
+
+	h.daemon.onKey("ACT07", 1) // double-tap the check switch: Enter
+	h.daemon.onKey("ACT07", 0)
+	h.daemon.onKey("ACT07", 1)
+	h.daemon.onKey("ACT07", 0)
+	h.desktop.await(t, "approve w102", "hold enter down", "hold enter up")
+
+	h.daemon.onKey("ACT12", 1) // held: cancelled
+	time.Sleep(tapFor + 50*time.Millisecond)
+	h.daemon.onKey("ACT12", 0)
+	time.Sleep(300 * time.Millisecond)
+	h.desktop.await(t, "approve w102", "hold enter down", "hold enter up")
+}
+
+func TestSwappedCheckPlusAgentKeyPins(t *testing.T) {
+	h := newHarness(t, "[keys]\nsend = \"approve\"\napprove = { double = \"enter\" }\n")
+	h.attachDesktop(11, "local_a")
+	second := h.attachDesktop(12, "local_b")
+	h.setActive(second)
+	h.daemon.onKey("ACT12", 1)
+	h.daemon.onKey("AG0", 1)
+	h.daemon.onKey("AG0", 0)
+	h.daemon.onKey("ACT12", 0)
+	h.waitFor(func() bool { return h.slotOf(12) == 0 })
+	time.Sleep(300 * time.Millisecond)
+	h.desktop.await(t)
+}
+
 func TestHeldCheckIsCancelled(t *testing.T) {
 	h := newHarness(t, "")
 	h.attach(101, nil)

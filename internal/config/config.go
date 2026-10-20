@@ -142,8 +142,8 @@ func Load(path string) (Config, []string) {
 			if err == nil && action.Hold != "" && section != "keys" {
 				err = errors.New("hold works on keys only")
 			}
-			if err == nil && action.Double != "" && (section != "keys" || control != "send") {
-				err = errors.New("double works on the send key only")
+			if err == nil && action.Double != "" && section != "keys" {
+				err = errors.New("double works on keys only")
 			}
 			if err != nil {
 				problems = append(problems, fmt.Sprintf("%s.%s: %v", section, control, err))
