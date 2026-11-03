@@ -164,3 +164,16 @@ func TestAgents(t *testing.T) {
 		t.Errorf("problems = %v", problems)
 	}
 }
+
+func TestLoadReadsThePadChannel(t *testing.T) {
+	c, problems := Load(write(t, "[pad]\nchannel = 2\n"))
+	if problems != nil || c.Channel != 2 {
+		t.Errorf("Load = %d, %v", c.Channel, problems)
+	}
+	for _, text := range []string{"[pad]\nchannel = 0\n", "[pad]\nchannel = 10\n", "[pad]\nchannel = \"2\"\n", "[pad]\nport = 2\n"} {
+		c, problems := Load(write(t, text))
+		if len(problems) != 1 || c.Channel != 0 {
+			t.Errorf("Load(%q) = %d, %v", text, c.Channel, problems)
+		}
+	}
+}

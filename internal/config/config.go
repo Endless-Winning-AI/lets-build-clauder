@@ -55,6 +55,7 @@ type Config struct {
 	Terminal []string                     // the command "fork" opens a terminal with
 	Manual   bool                         // agent keys go only to sessions pinned to them
 	Hide     []string                     // sidebar groups the knob skips
+	Channel  int                          // the Bluetooth channel to keep to, or 0 for any
 }
 
 // Defaults is what each control does when config.toml says nothing of it.
@@ -127,9 +128,23 @@ func Load(path string) (Config, []string) {
 			c.Terminal = command
 			continue
 		}
+		if section == "pad" {
+			for _, key := range sortedKeys(entries) {
+				n, ok := entries[key].(int64)
+				switch {
+				case key != "channel":
+					problems = append(problems, fmt.Sprintf("pad.%s: no such setting; expected channel", key))
+				case !ok || n < 1 || n > 9:
+					problems = append(problems, "pad.channel: expected a number from 1 to 9")
+				default:
+					c.Channel = int(n)
+				}
+			}
+			continue
+		}
 		controls, ok := c.Controls[section]
 		if !ok {
-			problems = append(problems, fmt.Sprintf("[%s]: no such section; expected [keys], [dial], [stick], [agents] or [terminal]", section))
+			problems = append(problems, fmt.Sprintf("[%s]: no such section; expected [keys], [dial], [stick], [agents], [terminal] or [pad]", section))
 			continue
 		}
 		for _, control := range sortedKeys(entries) {

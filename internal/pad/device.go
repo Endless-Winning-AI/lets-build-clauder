@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 )
@@ -12,7 +13,20 @@ import (
 type Found struct {
 	Model     string
 	Transport string // "usb" or "bluetooth"
+	Name      string // the product name; on macOS a Bluetooth channel's ends in "#<channel>"
 	path      string // what the platform opens it by
+}
+
+// Pick is the pad to open: the first found, or with a channel the first on
+// that Bluetooth channel or over USB, so the other channels stay free for
+// another app.
+func Pick(found []Found, channel int) (Found, bool) {
+	for _, f := range found {
+		if channel == 0 || f.Transport != "bluetooth" || strings.HasSuffix(f.Name, fmt.Sprintf("#%d", channel)) {
+			return f, true
+		}
+	}
+	return Found{}, false
 }
 
 // transport is an open pad: reports go out through it and come back through

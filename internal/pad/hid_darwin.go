@@ -67,7 +67,8 @@ func Find() []Found {
 			transport = "bluetooth"
 		}
 		location := strconv.Itoa(int(intProperty(device, "LocationID")))
-		found = append(found, Found{Model: model, Transport: transport, path: location})
+		name, _ := macos.GoString(property(device, "Product"))
+		found = append(found, Found{Model: model, Transport: transport, Name: name, path: location})
 	}
 	return found
 }
